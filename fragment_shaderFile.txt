@@ -1,0 +1,43 @@
+#version 330 core
+
+    out vec4 FragColor;
+
+    in vec2 Texcoords;
+    in vec3 Normal;
+    in mat3 TBN;
+    in vec3 world_space_position;
+    in vec3 world_space_camera_position;
+        
+    uniform sampler2D diffuse_map;
+    uniform sampler2D specular_map;
+    uniform sampler2D normal_map;
+
+    void main() {
+
+        //Light settings etc
+        vec3 light_dir = vec3(1.0, 1.0, 1.0);
+        vec3 light_color = vec3(0.8,0.6,0.6);
+        vec3 specular_color = 0.2 * vec3(1.0,1.0,1.0);
+        vec3 normal = vec3(texture(normal_map, Texcoords));
+        normal = normal * 2.0 - 1.0;
+        normal = TBN * normal;
+        normal = normalize(normal);
+        
+        //Diffuse lightning
+        float diffuse_intensity = max(dot(normal, light_dir), 0.0);
+        vec3 diffuse_map_color = vec3(texture(diffuse_map, Texcoords));
+        vec3 diffuse = diffuse_map_color * diffuse_intensity * light_color;
+        
+        //Ambient Lightning
+        vec3 ambient = diffuse_map_color * 2.0 * vec3(0.0,0.0,0.0);
+        
+        //Specular lightning
+        vec3 view_direction = normalize(world_space_camera_position - world_space_position);
+        vec3 reflect_direction = reflect(-light_dir, normal);
+        float specular_intensity = pow(max(dot(view_direction, reflect_direction), 0.0), 2.0);
+        specular_intensity *= (1.0 - texture(specular_map, Texcoords).r);
+        vec3 specular = specular_intensity * specular_color;
+        
+        //Final output
+        FragColor = vec4(ambient + diffuse + specular,1.0);
+    }
